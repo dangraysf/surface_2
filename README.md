@@ -1,12 +1,3 @@
-### DG Project Test for Lambda Cloud
+### Reproduce Electrostatics and other features with dMaSIF
 
-```
-git clone https://github.com/dangraysf/surface_1
-pipenv install
-```
-
-Check CUDA status, etc
-Run scripts
-
-
-This is a git test
+Goal: Re-wire AtomNet such (+/- curvature) so that there is no geo-conv embedding, need regression model (use net out, may need to use args or hard-wire final MLP) into edited loss function
