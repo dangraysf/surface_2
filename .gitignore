@@ -1,0 +1,5 @@
+.idea/
+*_scratch.py
+runs/
+models/
+surface_data/
