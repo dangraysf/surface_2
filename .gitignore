@@ -5,3 +5,4 @@ runs/
 models/
 surface_data/
 preds/
+.ipynb_checkpoints/
