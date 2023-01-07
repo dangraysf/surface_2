@@ -1,8 +1,0 @@
-__pycache__/
-.idea/
-*_scratch.py
-runs/
-models/
-surface_data/
-preds/
-.ipynb_checkpoints/
