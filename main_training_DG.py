@@ -21,7 +21,8 @@ writer = SummaryWriter("runs/{}".format(args.experiment_name))
 model_path = "models/" + args.experiment_name
 
 #DG Add
-save_predictions_path = Path("preds/" + args.experiment_name)
+save_predictions_path = Path("preds_1/" + args.experiment_name)
+# save_predictions_path = Path("preds_tmp/" + args.experiment_name)
 
 if not Path("models/").exists():
     Path("models/").mkdir(exist_ok=False)
@@ -57,13 +58,6 @@ train_loader = DataLoader(
 print("Preprocessing training dataset")
 train_dataset = iterate_surface_precompute(train_loader, net, args)
 
-# DG add
-training_pdb_ids = (
-    np.load("surface_data/processed/training_pairs_data_ids.npy")
-    if args.site
-    else np.load("surface_data/processed/training_pairs_data_ids_ppi.npy")
-)
-
 # Train/Validation split:
 train_nsamples = len(train_dataset)
 val_nsamples = int(train_nsamples * args.validation_fraction)
@@ -81,16 +75,8 @@ test_loader = DataLoader(
     test_dataset, batch_size=1, follow_batch=batch_vars, shuffle=True
 )
 
-# DG Add
-train_pdb_ids = (
-    np.load("surface_data/processed/training_pairs_data_ids.npy")
-    if args.site
-    else np.load("surface_data/processed/training_pairs_data_ids_ppi.npy")
-)
-
 print("Preprocessing testing dataset")
 test_dataset = iterate_surface_precompute(test_loader, net, args)
-
 
 # PyTorch_geometric data loaders:
 train_loader = DataLoader(
@@ -99,6 +85,12 @@ train_loader = DataLoader(
 val_loader = DataLoader(val_dataset, batch_size=1, follow_batch=batch_vars)
 test_loader = DataLoader(test_dataset, batch_size=1, follow_batch=batch_vars)
 
+# DG add
+training_pdb_ids = (
+    np.load("surface_data/processed/training_pairs_data_ids.npy")
+    if args.site
+    else np.load("surface_data/processed/training_pairs_data_ids_ppi.npy")
+)
 
 # Baseline optimizer:
 optimizer = torch.optim.Adam(net.parameters(), lr=3e-4, amsgrad=True)
