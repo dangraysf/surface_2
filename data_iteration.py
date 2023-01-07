@@ -32,6 +32,9 @@ def process_single(protein_pair, chain_idx=1):
         P["mesh_xyz"] = protein_pair.xyz_p1 if with_mesh else None
         P["mesh_triangles"] = protein_pair.face_p1 if with_mesh else None
 
+        # DG Add
+        P["mesh_chemfeat"] = protein_pair.chemical_features_p1 if with_mesh else None
+
         # Atom information:
         P["atoms"] = protein_pair.atom_coords_p1
         P["batch_atoms"] = protein_pair.atom_coords_p1_batch
@@ -56,6 +59,9 @@ def process_single(protein_pair, chain_idx=1):
         # Surface information:
         P["mesh_xyz"] = protein_pair.xyz_p2 if with_mesh else None
         P["mesh_triangles"] = protein_pair.face_p2 if with_mesh else None
+
+        # DG Add
+        P["mesh_chemfeat"] = protein_pair.chemical_features_p2 if with_mesh else None
 
         # Atom information:
         P["atoms"] = protein_pair.atom_coords_p2
@@ -84,6 +90,7 @@ def save_protein_batch_single(protein_pair_id, P, save_path, pdb_idx):
 
     # DG add
     mesh_xyz = P["mesh_xyz"]
+    mesh_chemfeat = P["mesh_chemfeat"]
 
     inputs = P["input_features"]
 
@@ -99,7 +106,8 @@ def save_protein_batch_single(protein_pair_id, P, save_path, pdb_idx):
 
     save_vtk(str(save_path / pdb_id) + f"_pred_emb{emb_id}", xyz, values=coloring)
     np.save(str(save_path / pdb_id) + "_predcoords", numpy(xyz))
-    np.save(str(save_path / pdb_id) + "_meshpoints", numpy(mesh_xyz))
+    np.save(str(save_path / pdb_id) + "_meshpoints", numpy(mesh_xyz)) # DG add
+    np.save(str(save_path / pdb_id) + "_meshfeatures", numpy(mesh_chemfeat)) # DG add
     np.save(str(save_path / pdb_id) + f"_predfeatures_emb{emb_id}", numpy(coloring))
 
 
@@ -246,6 +254,9 @@ def extract_single(P_batch, number):
 
     # DG add mesh_xyz for meshpoints pre-computed mesh point cloud
     P["mesh_xyz"] = P_batch["mesh_xyz"][mesh_batch]
+
+    # DG add mesh_chemfeat for meshpoints pre-computed mesh point cloud
+    P["mesh_chemfeat"] = P_batch["mesh_chemfeat"][mesh_batch]
 
     return P
 
