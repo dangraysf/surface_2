@@ -82,9 +82,13 @@ def save_protein_batch_single(protein_pair_id, P, save_path, pdb_idx):
 
     xyz = P["xyz"]
 
+    # DG add
+    mesh_xyz = P["mesh_xyz"]
+
     inputs = P["input_features"]
 
     embedding = P["embedding_1"] if pdb_idx == 1 else P["embedding_2"]
+
     emb_id = 1 if pdb_idx == 1 else 2
 
     predictions = torch.sigmoid(P["iface_preds"]) if "iface_preds" in P.keys() else 0.0*embedding[:,0].view(-1, 1)
@@ -95,6 +99,7 @@ def save_protein_batch_single(protein_pair_id, P, save_path, pdb_idx):
 
     save_vtk(str(save_path / pdb_id) + f"_pred_emb{emb_id}", xyz, values=coloring)
     np.save(str(save_path / pdb_id) + "_predcoords", numpy(xyz))
+    np.save(str(save_path / pdb_id) + "_meshpoints", numpy(mesh_xyz))
     np.save(str(save_path / pdb_id) + f"_predfeatures_emb{emb_id}", numpy(coloring))
 
 
@@ -219,6 +224,7 @@ def extract_single(P_batch, number):
     P = {}  # First and second proteins
     batch = P_batch["batch"] == number
     batch_atoms = P_batch["batch_atoms"] == number
+    mesh_batch = P_batch["mesh_batch"] == number # DG Add
 
     with_mesh = P_batch["labels"] is not None
     # Ground truth labels are available on mesh vertices:
@@ -237,6 +243,9 @@ def extract_single(P_batch, number):
     # Chemical features: atom coordinates and types.
     P["atom_xyz"] = P_batch["atom_xyz"][batch_atoms]
     P["atomtypes"] = P_batch["atomtypes"][batch_atoms]
+
+    # DG add mesh_xyz for meshpoints pre-computed mesh point cloud
+    P["mesh_xyz"] = P_batch["mesh_xyz"][mesh_batch]
 
     return P
 
