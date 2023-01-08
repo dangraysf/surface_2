@@ -13,7 +13,7 @@ parser.add_argument(
     "--embedding_layer",
     type=str,
     default="dMaSIF",
-    choices=["dMaSIF", "DGCNN", "PointNet++"],
+    choices=["dMaSIF", "DGCNN", "PointNet++", "None"],
     help="Which convolutional embedding layer to use",
 )
 parser.add_argument("--profile", type=bool, default=False, help="Profile code")
@@ -168,4 +168,17 @@ parser.add_argument(
     type=str,
     default="",
     help="Which structures to do inference on",
+)
+parser.add_argument(
+    "--train_chem_feat",
+    type=int,
+    default=0,
+    choices=[0,1,2],
+    help="Which pre-computed val to train on",
+)
+parser.add_argument(
+    "--chem_feat_net",
+    type=bool,
+    default=True,
+    help="Trigger final MLP to train on pre-computed chem_feats",
 )

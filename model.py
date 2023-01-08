@@ -266,25 +266,49 @@ def split_pair(P1P2):
     return P1, P2
 
 
+# This is duplicated from data.py?
 
-def project_iface_labels(P, threshold=2.0):
+# def project_iface_labels(P, threshold=2.0):
+#
+#     queries = P["xyz"]
+#     batch_queries = P["batch"]
+#     source = P["mesh_xyz"]
+#     batch_source = P["mesh_batch"]
+#     labels = P["mesh_labels"]
+#     x_i = LazyTensor(queries[:, None, :])  # (N, 1, D)
+#     y_j = LazyTensor(source[None, :, :])  # (1, M, D)
+#
+#     D_ij = ((x_i - y_j) ** 2).sum(-1).sqrt()  # (N, M)
+#     D_ij.ranges = diagonal_ranges(batch_queries, batch_source)
+#     nn_i = D_ij.argmin(dim=1).view(-1)  # (N,)
+#     nn_dist_i = (
+#         D_ij.min(dim=1).view(-1, 1) < threshold
+#     ).float()  # If chain is not connected because of missing densities MaSIF cut out a part of the protein
+#     query_labels = labels[nn_i] * nn_dist_i
+#     P["labels"] = query_labels
+
+def project_iface_labels(P, args, threshold=2.0):
 
     queries = P["xyz"]
     batch_queries = P["batch"]
     source = P["mesh_xyz"]
     batch_source = P["mesh_batch"]
-    labels = P["mesh_labels"]
+    # labels = P["mesh_labels"]
+    labels = P["mesh_chemfeat"][:, args.train_chem_feat] # DG: Add the mesh_fear this selects the chem_feat col
     x_i = LazyTensor(queries[:, None, :])  # (N, 1, D)
     y_j = LazyTensor(source[None, :, :])  # (1, M, D)
 
-    D_ij = ((x_i - y_j) ** 2).sum(-1).sqrt()  # (N, M)
+    D_ij = ((x_i - y_j) ** 2).sum(-1)  # (N, M)
     D_ij.ranges = diagonal_ranges(batch_queries, batch_source)
     nn_i = D_ij.argmin(dim=1).view(-1)  # (N,)
     nn_dist_i = (
         D_ij.min(dim=1).view(-1, 1) < threshold
     ).float()  # If chain is not connected because of missing densities MaSIF cut out a part of the protein
+
     query_labels = labels[nn_i] * nn_dist_i
+
     P["labels"] = query_labels
+
 
 class dMaSIF(nn.Module):
     def __init__(self, args):
@@ -452,8 +476,11 @@ class dMaSIF(nn.Module):
             sup_sampling=self.args.sup_sampling,
             distance=self.args.distance,
         )
-        if P['mesh_labels'] is not None:
-            project_iface_labels(P)
+        # if P['mesh_labels'] is not None:
+        #     project_iface_labels(P)
+
+        if P["mesh_chemfeat"] is not None:
+            project_iface_labels(P, self.args)
 
     def forward(self, P1, P2=None):
         # Compute embeddings of the point clouds:
@@ -469,8 +496,11 @@ class dMaSIF(nn.Module):
         R_values["input"] = soft_dimension(P1P2["input_features"])
         R_values["conv"] = soft_dimension(P1P2["embedding_1"])
 
-        if self.args.site:
-            P1P2["iface_preds"] = self.net_out(P1P2["embedding_1"])
+        # if self.args.site:
+        #     P1P2["iface_preds"] = self.net_out(P1P2["embedding_1"])
+
+        if self.args.chem_feat_net:
+            P1P2["feat_preds"] = self.net_out(P1P2["input_features"])
 
         if P2 is not None:
             P1, P2 = split_pair(P1P2)

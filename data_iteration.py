@@ -111,13 +111,14 @@ def save_protein_batch_single(protein_pair_id, P, save_path, pdb_idx):
     np.save(str(save_path / pdb_id) + f"_predfeatures_emb{emb_id}", numpy(coloring))
 
 
-def project_iface_labels(P, threshold=2.0):
+def project_iface_labels(P, args, threshold=2.0):
 
     queries = P["xyz"]
     batch_queries = P["batch"]
     source = P["mesh_xyz"]
     batch_source = P["mesh_batch"]
-    labels = P["mesh_labels"]
+    # labels = P["mesh_labels"]
+    labels = P["mesh_chemfeat"][:, args.train_chem_feat] # DG: Add the mesh_fear this selects the chem_feat col
     x_i = LazyTensor(queries[:, None, :])  # (N, 1, D)
     y_j = LazyTensor(source[None, :, :])  # (1, M, D)
 
@@ -167,66 +168,72 @@ def generate_matchinglabels(args, P1, P2):
     P2["labels"] = p2_iface_labels
 
 
-def compute_loss(args, P1, P2, n_points_sample=16):
+# def compute_loss(args, P1, P2, n_points_sample=16):
+#
+#     if args.search:
+#         pos_xyz1 = P1["xyz"][P1["labels"] == 1]
+#         pos_xyz2 = P2["xyz"][P2["labels"] == 1]
+#         pos_descs1 = P1["embedding_1"][P1["labels"] == 1]
+#         pos_descs2 = P2["embedding_2"][P2["labels"] == 1]
+#
+#         pos_xyz_dists = (
+#             ((pos_xyz1[:, None, :] - pos_xyz2[None, :, :]) ** 2).sum(-1).sqrt()
+#         )
+#         pos_desc_dists = torch.matmul(pos_descs1, pos_descs2.T)
+#
+#         pos_preds = pos_desc_dists[pos_xyz_dists < 1.0]
+#         pos_labels = torch.ones_like(pos_preds)
+#
+#         n_desc_sample = 100
+#         sample_desc2 = torch.randperm(len(P2["embedding_2"]))[:n_desc_sample]
+#         sample_desc2 = P2["embedding_2"][sample_desc2]
+#         neg_preds = torch.matmul(pos_descs1, sample_desc2.T).view(-1)
+#         neg_labels = torch.zeros_like(neg_preds)
+#
+#         # For symmetry
+#         pos_descs1_2 = P1["embedding_2"][P1["labels"] == 1]
+#         pos_descs2_2 = P2["embedding_1"][P2["labels"] == 1]
+#
+#         pos_desc_dists2 = torch.matmul(pos_descs2_2, pos_descs1_2.T)
+#         pos_preds2 = pos_desc_dists2[pos_xyz_dists.T < 1.0]
+#         pos_preds = torch.cat([pos_preds, pos_preds2], dim=0)
+#         pos_labels = torch.ones_like(pos_preds)
+#
+#         sample_desc1_2 = torch.randperm(len(P1["embedding_2"]))[:n_desc_sample]
+#         sample_desc1_2 = P1["embedding_2"][sample_desc1_2]
+#         neg_preds_2 = torch.matmul(pos_descs2_2, sample_desc1_2.T).view(-1)
+#
+#         neg_preds = torch.cat([neg_preds, neg_preds_2], dim=0)
+#         neg_labels = torch.zeros_like(neg_preds)
+#
+#     else:
+#         pos_preds = P1["iface_preds"][P1["labels"] == 1]
+#         pos_labels = P1["labels"][P1["labels"] == 1]
+#         neg_preds = P1["iface_preds"][P1["labels"] == 0]
+#         neg_labels = P1["labels"][P1["labels"] == 0]
+#
+#     n_points_sample = len(pos_labels)
+#     pos_indices = torch.randperm(len(pos_labels))[:n_points_sample]
+#     neg_indices = torch.randperm(len(neg_labels))[:n_points_sample]
+#
+#     pos_preds = pos_preds[pos_indices]
+#     pos_labels = pos_labels[pos_indices]
+#     neg_preds = neg_preds[neg_indices]
+#     neg_labels = neg_labels[neg_indices]
+#
+#     preds_concat = torch.cat([pos_preds, neg_preds])
+#     labels_concat = torch.cat([pos_labels, neg_labels])
+#
+#     loss = F.binary_cross_entropy_with_logits(preds_concat, labels_concat)
+#
+#     return loss, preds_concat, labels_concat
 
-    if args.search:
-        pos_xyz1 = P1["xyz"][P1["labels"] == 1]
-        pos_xyz2 = P2["xyz"][P2["labels"] == 1]
-        pos_descs1 = P1["embedding_1"][P1["labels"] == 1]
-        pos_descs2 = P2["embedding_2"][P2["labels"] == 1]
+def compute_loss(args, P1, P2):
+    preds = P1["feat_preds"] # DG Is this correct?
+    labels = P1["mesh_chemfeat"][:, args.train_chem_feat]
+    loss = F.mse_loss(preds, labels)
 
-        pos_xyz_dists = (
-            ((pos_xyz1[:, None, :] - pos_xyz2[None, :, :]) ** 2).sum(-1).sqrt()
-        )
-        pos_desc_dists = torch.matmul(pos_descs1, pos_descs2.T)
-
-        pos_preds = pos_desc_dists[pos_xyz_dists < 1.0]
-        pos_labels = torch.ones_like(pos_preds)
-
-        n_desc_sample = 100
-        sample_desc2 = torch.randperm(len(P2["embedding_2"]))[:n_desc_sample]
-        sample_desc2 = P2["embedding_2"][sample_desc2]
-        neg_preds = torch.matmul(pos_descs1, sample_desc2.T).view(-1)
-        neg_labels = torch.zeros_like(neg_preds)
-
-        # For symmetry
-        pos_descs1_2 = P1["embedding_2"][P1["labels"] == 1]
-        pos_descs2_2 = P2["embedding_1"][P2["labels"] == 1]
-
-        pos_desc_dists2 = torch.matmul(pos_descs2_2, pos_descs1_2.T)
-        pos_preds2 = pos_desc_dists2[pos_xyz_dists.T < 1.0]
-        pos_preds = torch.cat([pos_preds, pos_preds2], dim=0)
-        pos_labels = torch.ones_like(pos_preds)
-
-        sample_desc1_2 = torch.randperm(len(P1["embedding_2"]))[:n_desc_sample]
-        sample_desc1_2 = P1["embedding_2"][sample_desc1_2]
-        neg_preds_2 = torch.matmul(pos_descs2_2, sample_desc1_2.T).view(-1)
-
-        neg_preds = torch.cat([neg_preds, neg_preds_2], dim=0)
-        neg_labels = torch.zeros_like(neg_preds)
-
-    else:
-        pos_preds = P1["iface_preds"][P1["labels"] == 1]
-        pos_labels = P1["labels"][P1["labels"] == 1]
-        neg_preds = P1["iface_preds"][P1["labels"] == 0]
-        neg_labels = P1["labels"][P1["labels"] == 0]
-
-    n_points_sample = len(pos_labels)
-    pos_indices = torch.randperm(len(pos_labels))[:n_points_sample]
-    neg_indices = torch.randperm(len(neg_labels))[:n_points_sample]
-
-    pos_preds = pos_preds[pos_indices]
-    pos_labels = pos_labels[pos_indices]
-    neg_preds = neg_preds[neg_indices]
-    neg_labels = neg_labels[neg_indices]
-
-    preds_concat = torch.cat([pos_preds, neg_preds])
-    labels_concat = torch.cat([pos_labels, neg_labels])
-
-    loss = F.binary_cross_entropy_with_logits(preds_concat, labels_concat)
-
-    return loss, preds_concat, labels_concat
-
+    return loss
 
 def extract_single(P_batch, number):
     P = {}  # First and second proteins
@@ -354,8 +361,10 @@ def iterate(
             if args.search:
                 generate_matchinglabels(args, P1, P2)
 
+            # if P1["labels"] is not None:
+            #     loss, sampled_preds, sampled_labels = compute_loss(args, P1, P2)
             if P1["labels"] is not None:
-                loss, sampled_preds, sampled_labels = compute_loss(args, P1, P2)
+                loss = compute_loss(args, P1, P2)
             else:
                 loss = torch.tensor(0.0)
                 sampled_preds = None
