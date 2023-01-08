@@ -22,7 +22,6 @@ model_path = "models/" + args.experiment_name
 
 #DG Add
 save_predictions_path = Path("preds/" + args.experiment_name)
-# save_predictions_path = Path("preds_tmp/" + args.experiment_name)
 
 if not Path("models/").exists():
     Path("models/").mkdir(exist_ok=False)
