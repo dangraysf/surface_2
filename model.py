@@ -294,7 +294,7 @@ def project_iface_labels(P, args, threshold=2.0):
     source = P["mesh_xyz"]
     batch_source = P["mesh_batch"]
     # labels = P["mesh_labels"]
-    labels = P["mesh_chemfeat"][:, args.train_chem_feat] # DG: Add the mesh_fear this selects the chem_feat col
+    labels = P["mesh_chemfeat"][:, args.train_chem_feat].view(-1,1) # DG: Add the mesh_fear this selects the chem_feat col
     x_i = LazyTensor(queries[:, None, :])  # (N, 1, D)
     y_j = LazyTensor(source[None, :, :])  # (1, M, D)
 
@@ -494,7 +494,9 @@ class dMaSIF(nn.Module):
         # Monitor the approximate rank of our representations:
         R_values = {}
         R_values["input"] = soft_dimension(P1P2["input_features"])
-        R_values["conv"] = soft_dimension(P1P2["embedding_1"])
+
+        # DG Add
+        # R_values["conv"] = soft_dimension(P1P2["embedding_1"])
 
         # if self.args.site:
         #     P1P2["iface_preds"] = self.net_out(P1P2["embedding_1"])

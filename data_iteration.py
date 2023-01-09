@@ -118,7 +118,7 @@ def project_iface_labels(P, args, threshold=2.0):
     source = P["mesh_xyz"]
     batch_source = P["mesh_batch"]
     # labels = P["mesh_labels"]
-    labels = P["mesh_chemfeat"][:, args.train_chem_feat] # DG: Add the mesh_fear this selects the chem_feat col
+    labels = P["mesh_chemfeat"][:, args.train_chem_feat].view(-1,1) # DG: Add the mesh_fear this selects the chem_feat col
     x_i = LazyTensor(queries[:, None, :])  # (N, 1, D)
     y_j = LazyTensor(source[None, :, :])  # (1, M, D)
 
@@ -229,8 +229,8 @@ def generate_matchinglabels(args, P1, P2):
 #     return loss, preds_concat, labels_concat
 
 def compute_loss(args, P1, P2):
-    preds = P1["feat_preds"] # DG Is this correct?
-    labels = P1["mesh_chemfeat"][:, args.train_chem_feat]
+    preds = P1["feat_preds"]
+    labels = P1["labels"]
     loss = F.mse_loss(preds, labels)
 
     return loss
@@ -363,10 +363,15 @@ def iterate(
 
             # if P1["labels"] is not None:
             #     loss, sampled_preds, sampled_labels = compute_loss(args, P1, P2)
+            # else:
+            #     loss = torch.tensor(0.0)
+            #     sampled_preds = None
+            #     sampled_labels = None
+
+            # DG Add
             if P1["labels"] is not None:
                 loss = compute_loss(args, P1, P2)
-            else:
-                loss = torch.tensor(0.0)
+
                 sampled_preds = None
                 sampled_labels = None
 
@@ -387,13 +392,13 @@ def iterate(
                             parameter.grad.view(-1),
                             epoch_number,
                         )
-                for para_it, parameter in enumerate(net.conv.parameters()):
-                    if parameter.requires_grad:
-                        summary_writer.add_histogram(
-                            f"Gradients/Conv/para_{para_it}_{parameter.shape}",
-                            parameter.grad.view(-1),
-                            epoch_number,
-                        )
+                # for para_it, parameter in enumerate(net.conv.parameters()):
+                #     if parameter.requires_grad:
+                #         summary_writer.add_histogram(
+                #             f"Gradients/Conv/para_{para_it}_{parameter.shape}",
+                #             parameter.grad.view(-1),
+                #             epoch_number,
+                #         )
 
                 for d, features in enumerate(P1["input_features"].T):
                     summary_writer.add_histogram(f"Input features/{d}", features)
