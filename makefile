@@ -11,4 +11,4 @@ clear_models:
 	rm -rf models
 
 .PHONY: clear_all
-clear_all: clear_keops clear_data clear_runs clear_models
+clear_all: clear_keops clear_data clear_runs

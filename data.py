@@ -317,7 +317,8 @@ class ProteinPairsSurfaces(InMemoryDataset):
         pdb_dir = Path(self.root) / "raw" / "01-benchmark_pdbs"
         surf_dir = Path(self.root) / "raw" / "01-benchmark_surfaces"
         protein_dir = Path(self.root) / "raw" / "01-benchmark_surfaces_npy"
-        lists_dir = Path('./lists')
+        # lists_dir = Path('./lists')
+        lists_dir = Path('./lists_save') # DG: This saves 10 unseen PDBs for inference
         # lists_dir = Path('./lists_short')
 
         # Untar surface files

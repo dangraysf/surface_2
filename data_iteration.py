@@ -4,7 +4,7 @@ from helper import *
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.autograd.profiler as profiler
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, mean_squared_error
 from pathlib import Path
 import math
 from tqdm import tqdm
@@ -231,9 +231,10 @@ def generate_matchinglabels(args, P1, P2):
 def compute_loss(args, P1, P2):
     preds = P1["feat_preds"]
     labels = P1["labels"]
+
     loss = F.mse_loss(preds, labels)
 
-    return loss
+    return loss, preds, labels
 
 def extract_single(P_batch, number):
     P = {}  # First and second proteins
@@ -370,7 +371,7 @@ def iterate(
 
             # DG Add
             if P1["labels"] is not None:
-                loss = compute_loss(args, P1, P2)
+                loss, preds, labels = compute_loss(args, P1, P2)
 
                 sampled_preds = None
                 sampled_labels = None
@@ -412,18 +413,25 @@ def iterate(
                         batch_ids[protein_it], P2, save_path, pdb_idx=2
                     )
 
-            try:
-                if sampled_labels is not None:
-                    roc_auc = roc_auc_score(
-                        np.rint(numpy(sampled_labels.view(-1))),
-                        numpy(sampled_preds.view(-1)),
-                    )
-                else:
-                    roc_auc = 0.0
-            except Exception as e:
-                print("Problem with computing roc-auc")
-                print(e)
-                continue
+            # try:
+            #     if sampled_labels is not None:
+            #         roc_auc = roc_auc_score(
+            #             np.rint(numpy(sampled_labels.view(-1))),
+            #             numpy(sampled_preds.view(-1)),
+            #         )
+            #     else:
+            #         roc_auc = 0.0
+            # except Exception as e:
+            #     print("Problem with computing roc-auc")
+            #     print(e)
+            #     continue
+
+            # DG add
+            la, pr = numpy(labels).reshape(-1), numpy(preds).reshape(-1)
+            rmsd = np.sqrt(mean_squared_error(la, pr))
+
+            prla = np.stack([pr, la])
+            corr = np.corrcoef(prla)[0,1]
 
             R_values = outputs["R_values"]
 
@@ -431,7 +439,9 @@ def iterate(
                 dict(
                     {
                         "Loss": loss.item(),
-                        "ROC-AUC": roc_auc,
+                        # "ROC-AUC": roc_auc,
+                        "RMSD": rmsd, # DG add
+                        "Correlation": corr, # DG Add
                         "conv_time": outputs["conv_time"],
                         "memory_usage": outputs["memory_usage"],
                     },

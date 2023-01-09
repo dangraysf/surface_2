@@ -126,7 +126,9 @@ for i in range(starting_epoch, args.n_epochs):
         for key, val in info.items():
             if key in [
                 "Loss",
-                "ROC-AUC",
+                # "ROC-AUC",
+                "RMSD",
+                "Correlation",
                 "Distance/Positives",
                 "Distance/Negatives",
                 "Matching ROC-AUC",
@@ -139,10 +141,14 @@ for i in range(starting_epoch, args.n_epochs):
 
         if dataset_type == "Validation":  # Store validation loss for saving the model
             val_loss = np.mean(info["Loss"])
+            val_rmsd = np.mean(info["RMSD"])  # DG add
+            val_corr = np.mean(info["Correlation"])  # DG add
 
     if True:  # Additional saves
         if val_loss < best_loss:
             print("Validation loss {}, saving model".format(val_loss))
+            print("Validation RMSD {}".format(val_rmsd))  # DG add
+            print("Validation corr {}".format(val_corr))  # DG add
             torch.save(
                 {
                     "epoch": i,
